@@ -1,4 +1,4 @@
-# combine_images_py
+# Image Combinator
 
 There are times when we get to capture different pictures/scence from videos. 
 As the number of captured files become larger, it becomes hassle to reorganize and upload them in a right order.
