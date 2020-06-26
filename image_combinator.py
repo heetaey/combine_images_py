@@ -1,7 +1,9 @@
+import os
 from tkinter import *
 from tkinter import filedialog
 import tkinter.messagebox as msgbox
 import tkinter.ttk as ttk
+from PIL import Image
 
 root = Tk()
 root.title("Image combinator")
@@ -10,13 +12,13 @@ root.title("Image combinator")
 def add_file():
     files = filedialog.askopenfilenames(title="Select the image file(s)", \
                                         filetypes=(("PNG FILE", "*.png"), ("ALL", "*.*")), \
-                                        initialdir="C:/")
+                                        initialdir="C:/Users/heetaeyang/Documents")
     for file in files:
         list_file.insert(END, file)
 
 
 def del_file():
-    for i in reversed(list_file.curselections()):
+    for i in reversed(list_file.curselection()):
         list_file.delete(i)
 
 
@@ -28,14 +30,44 @@ def browse_path():
     txt_destination_path.insert(0, selected_folder)
 
 
+def merge_images():
+    print(list_file.get(0, END))
+
+
 def start():
-    if list_file.size() == 0:
-        msgbox.showwarning("Warning", "Add file(s) before starting")
+    if list_file.size() < 2:
+        msgbox.showwarning("Warning", "Minimum 2 files are required to start the process")
         return
 
     if len(txt_destination_path.get()) == 0:
         msgbox.showwarning("Warning", "Select your save directory")
         return
+
+    # combine images
+    merge_images()
+    images = [Image.open(x) for x in list_file.get(0, END)]
+
+    # widths = [x.size[0] for x in images]
+    # heights = [x.size[1] for x in images]
+    widths, heights = zip(*(x.size for x in images))
+
+    # set the widths and heights value depending on added pictures
+    max_widths, total_heights = max(widths), sum(heights)
+
+    final_img = Image.new("RGB", (max_widths, total_heights), (255, 255, 255))
+    y_offset = 0
+
+    # Sets the progress bar reflecting the task completion
+    for idx, img in enumerate(images):
+        final_img.paste(img, (0, y_offset))
+        y_offset += img.size[1]
+        progress = (idx + 1) / len(images) * 100
+        p_var.set(progress)
+        progress_bar.update()
+
+    dest_path = os.path.join(txt_destination_path.get(), "test.jpg")
+    final_img.save(dest_path)
+    msgbox.showinfo("Alert", "Task Completed")
 
 
 file_frame = Frame(root)
@@ -117,6 +149,3 @@ btn_start.pack(side="right", padx=5, pady=5)
 
 root.resizable(False, False)
 root.mainloop()
-
-if __name__ == "__main__":
-    main()
