@@ -9,8 +9,8 @@ from PIL import Image, ImageGrab
 
 
 def add_file():
-    files = filedialog.askopenfilenames(title="Select the image file(s)", \
-                                        filetypes=(("PNG FILE", "*.png"), ("ALL", "*.*")), \
+    files = filedialog.askopenfilenames(title="Select the image file(s)",
+                                        filetypes=[("png", "*.png"), ("Any", "*.*")], \
                                         initialdir="C:/Users/heetaeyang/Documents")
     for file in files:
         list_file.insert(END, file)
@@ -33,7 +33,7 @@ def merge_images():
     try:
         img_width = cmb_width.get()
         if img_width == "Original":
-            img_width -= -1
+            img_width = -1
         else:
             img_width = int(img_width)
 
