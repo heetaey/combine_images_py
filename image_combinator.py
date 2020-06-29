@@ -31,7 +31,60 @@ def browse_path():
 
 
 def merge_images():
-    print(list_file.get(0, END))
+    img_width = cmb_width.get()
+    if img_width == "Original":
+        img_width -= -1
+    else:
+        img_width = int(img_width)
+
+    # ["None", "Narrow", "Normal", "Wide"]
+    img_space = cmb_spacing.get()
+    if img_space == "Narrow":
+        img_space = 10
+    elif img_space == "Normal":
+        img_space = 30
+    elif img_space == "Wide":
+        img_space = 60
+    else:
+        img_space = 0
+
+    # ["PNG", "JPG", "BMP"]
+    img_format = cmb_format.get().lower()
+
+    images = [Image.open(x) for x in list_file.get(0, END)]
+    # [(width1, height1), (width2, height2), ...]
+    image_sizes = []
+    if img_width > -1:
+        image_sizes = [(int(img_width), int(img_width * x.size[1] / x.size[0])) for x in images]
+    else:
+        image_sizes = [(x.size[0], x.size[1]) for x in images]
+
+    widths, heights = zip(*(image_sizes))
+    # set the widths and heights value depending on added pictures
+    max_widths, total_heights = max(widths), sum(heights)
+
+    # final image output
+    if img_space > 0:
+        total_heights + (img_space * (len(images) - 1))
+    final_img = Image.new("RGB", (max_widths, total_heights), (255, 255, 255))
+    y_offset = 0
+
+    # Sets the progress bar reflecting the task completion
+    for idx, img in enumerate(images):
+        if img_width > -1:
+            img = img.resize(image_sizes[idx])
+
+        final_img.paste(img, (0, y_offset))
+        y_offset += (img.size[1] + img_space)  # height value + user selected space option
+
+        progress = (idx + 1) / len(images) * 100
+        p_var.set(progress)
+        progress_bar.update()
+
+    file_name = "image_comb." + img_format
+    dest_path = os.path.join(txt_destination_path.get(), file_name)
+    final_img.save(dest_path)
+    msgbox.showinfo("Alert", "Task Completed")
 
 
 def start():
@@ -45,29 +98,6 @@ def start():
 
     # combine images
     merge_images()
-    images = [Image.open(x) for x in list_file.get(0, END)]
-
-    # widths = [x.size[0] for x in images]
-    # heights = [x.size[1] for x in images]
-    widths, heights = zip(*(x.size for x in images))
-
-    # set the widths and heights value depending on added pictures
-    max_widths, total_heights = max(widths), sum(heights)
-
-    final_img = Image.new("RGB", (max_widths, total_heights), (255, 255, 255))
-    y_offset = 0
-
-    # Sets the progress bar reflecting the task completion
-    for idx, img in enumerate(images):
-        final_img.paste(img, (0, y_offset))
-        y_offset += img.size[1]
-        progress = (idx + 1) / len(images) * 100
-        p_var.set(progress)
-        progress_bar.update()
-
-    dest_path = os.path.join(txt_destination_path.get(), "test.jpg")
-    final_img.save(dest_path)
-    msgbox.showinfo("Alert", "Task Completed")
 
 
 file_frame = Frame(root)
@@ -88,7 +118,7 @@ list_file = Listbox(list_frame, selectmode="extended", height=15, yscrollcommand
 list_file.pack(side="left", fill="both", expand=True)
 scrollbar.config(command=list_file.yview)
 
-path_frame = LabelFrame(root, text="Save As")
+path_frame = LabelFrame(root, text="Save To")
 path_frame.pack(fill="x", padx=5, pady=5, ipady=5)
 
 txt_destination_path = Entry(path_frame)
