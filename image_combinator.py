@@ -1,12 +1,11 @@
 import os
+import threading
+import time
 from tkinter import *
 from tkinter import filedialog
 import tkinter.messagebox as msgbox
 import tkinter.ttk as ttk
-from PIL import Image
-
-root = Tk()
-root.title("Image combinator")
+from PIL import Image, ImageGrab
 
 
 def add_file():
@@ -24,67 +23,70 @@ def del_file():
 
 def browse_path():
     selected_folder = filedialog.askdirectory()
-    if selected_folder is None:
+    if selected_folder == '':
         return
     txt_destination_path.delete(0, END)
     txt_destination_path.insert(0, selected_folder)
 
 
 def merge_images():
-    img_width = cmb_width.get()
-    if img_width == "Original":
-        img_width -= -1
-    else:
-        img_width = int(img_width)
+    try:
+        img_width = cmb_width.get()
+        if img_width == "Original":
+            img_width -= -1
+        else:
+            img_width = int(img_width)
 
-    # ["None", "Narrow", "Normal", "Wide"]
-    img_space = cmb_spacing.get()
-    if img_space == "Narrow":
-        img_space = 10
-    elif img_space == "Normal":
-        img_space = 30
-    elif img_space == "Wide":
-        img_space = 60
-    else:
-        img_space = 0
+        # ["None", "Narrow", "Normal", "Wide"]
+        img_space = cmb_spacing.get()
+        if img_space == "Narrow":
+            img_space = 10
+        elif img_space == "Normal":
+            img_space = 30
+        elif img_space == "Wide":
+            img_space = 60
+        else:
+            img_space = 0
 
-    # ["PNG", "JPG", "BMP"]
-    img_format = cmb_format.get().lower()
+        # ["PNG", "JPG", "BMP"]
+        img_format = cmb_format.get().lower()
 
-    images = [Image.open(x) for x in list_file.get(0, END)]
-    # [(width1, height1), (width2, height2), ...]
-    image_sizes = []
-    if img_width > -1:
-        image_sizes = [(int(img_width), int(img_width * x.size[1] / x.size[0])) for x in images]
-    else:
-        image_sizes = [(x.size[0], x.size[1]) for x in images]
-
-    widths, heights = zip(*(image_sizes))
-    # set the widths and heights value depending on added pictures
-    max_widths, total_heights = max(widths), sum(heights)
-
-    # final image output
-    if img_space > 0:
-        total_heights + (img_space * (len(images) - 1))
-    final_img = Image.new("RGB", (max_widths, total_heights), (255, 255, 255))
-    y_offset = 0
-
-    # Sets the progress bar reflecting the task completion
-    for idx, img in enumerate(images):
+        images = [Image.open(x) for x in list_file.get(0, END)]
+        # [(width1, height1), (width2, height2), ...]
+        image_sizes = []
         if img_width > -1:
-            img = img.resize(image_sizes[idx])
+            image_sizes = [(int(img_width), int(img_width * x.size[1] / x.size[0])) for x in images]
+        else:
+            image_sizes = [(x.size[0], x.size[1]) for x in images]
 
-        final_img.paste(img, (0, y_offset))
-        y_offset += (img.size[1] + img_space)  # height value + user selected space option
+        widths, heights = zip(*(image_sizes))
+        # set the widths and heights value depending on added pictures
+        max_widths, total_heights = max(widths), sum(heights)
 
-        progress = (idx + 1) / len(images) * 100
-        p_var.set(progress)
-        progress_bar.update()
+        # final image output
+        if img_space > 0:
+            total_heights + (img_space * (len(images) - 1))
+        final_img = Image.new("RGB", (max_widths, total_heights), (255, 255, 255))
+        y_offset = 0
 
-    file_name = "image_comb." + img_format
-    dest_path = os.path.join(txt_destination_path.get(), file_name)
-    final_img.save(dest_path)
-    msgbox.showinfo("Alert", "Task Completed")
+        # Sets the progress bar reflecting the task completion
+        for idx, img in enumerate(images):
+            if img_width > -1:
+                img = img.resize(image_sizes[idx])
+
+            final_img.paste(img, (0, y_offset))
+            y_offset += (img.size[1] + img_space)  # height value + user selected space option
+
+            progress = (idx + 1) / len(images) * 100
+            p_var.set(progress)
+            progress_bar.update()
+
+        file_name = "image_comb." + img_format
+        dest_path = os.path.join(txt_destination_path.get(), file_name)
+        final_img.save(dest_path)
+        msgbox.showinfo("Alert", "Task Completed")
+    except Exception as err:
+        msgbox.showerror("Error", err)
 
 
 def start():
@@ -99,6 +101,26 @@ def start():
     # combine images
     merge_images()
 
+
+def screenshot():
+    time.sleep(5)
+    print("Starting now.")
+    for i in range(1, 11):
+        img = ImageGrab.grab()
+        img.save("image{}.png".format(i))
+        print("img" + str(i) + " complete.")
+        time.sleep(2)
+    msgbox.showinfo("Alert", "Screenshot Completed")
+
+
+# Threading to avoid GUI hanging while screenshot capturing is running
+def start_screenshot():
+    t1 = threading.Thread(target=screenshot)
+    t1.start()
+
+
+root = Tk()
+root.title("Image combinator")
 
 file_frame = Frame(root)
 file_frame.pack(fill="x", padx=5, pady=5)
@@ -170,6 +192,10 @@ progress_bar.pack(fill="x", padx=5, pady=5)
 
 frame_run = Frame(root)
 frame_run.pack(fill="x", padx=5, pady=5)
+
+btn_screenshot = Button(frame_run, padx=5, pady=5, text="Take Screenshot", width=12,
+                        command=start_screenshot)
+btn_screenshot.pack(side="left", padx=5, pady=5)
 
 btn_close = Button(frame_run, padx=5, pady=5, text="Quit", width=12, command=root.quit)
 btn_close.pack(side="right", padx=5, pady=5)
